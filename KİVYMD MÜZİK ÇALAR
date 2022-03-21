@@ -1,0 +1,168 @@
+from kivy.lang import Builder, builder
+from kivymd.uix.boxlayout import MDBoxLayout
+from kivy.properties import NumericProperty
+from kivy.core.window import Window
+from kivymd.app import MDApp
+from kivy.clock import Clock
+from kivy.uix.screenmanager import ScreenManager,Screen
+from kivymd.theming import ThemableBehavior
+from kivy.animation import Animation
+from kivy.core.audio import SoundLoader
+from kivy.properties import ObjectProperty
+from kivymd.uix.slider import MDSlider
+Window.size=(350,600)
+
+
+class MySlider(MDSlider):
+    sound = ObjectProperty(None)
+
+    def on_touch_up(self, touch):
+        if touch.grab_current == self:
+            # call super method and save its return
+            ret_val = super(MySlider, self).on_touch_up(touch)
+
+            # adjust position of sound
+            self.sound.seek(self.max * self.value_normalized)
+
+            # if sound is stopped, restart it
+            if self.sound.state == 'stop':
+                MDApp.get_running_app().start_play()
+
+            # return the saved return value
+            return ret_val
+        else:
+            return super(MySlider, self).on_touch_up(touch)
+
+class SongCover(MDBoxLayout):
+    pass
+
+class MusicApp(MDApp):
+    
+    def build(self):
+        self.Music=SoundLoader.load("sarkı6.mp3")
+        self.updater = None
+
+        self.slider = MySlider(min=0, max=self.Music.length, value=0, sound=self.Music,
+                          pos_hint={'center_x': 0.50, 'center_y': 0.3},
+                          size_hint=(0.6, 0.1))
+                          
+        
+        global ekran
+        ekran=ScreenManager()
+        ekran.add_widget(Builder.load_file("ee.kv"))
+        ekran.get_screen("sayfa").ids.ekleme.add_widget(self.slider)
+        return ekran 
+        
+    def start_play(self, *args):
+        # play the sound
+        self.Music.play()
+
+        if self.updater is None:
+            # schedule updates to the slider
+            self.updater = Clock.schedule_interval(self.update_slider, 0.5)
+
+
+
+    def update_slider(self, dt):
+        # update slider
+        self.slider.value =self.Music.get_pos()
+
+        # if the sound has finished, stop the updating
+        if self.Music.state == 'stop':
+            self.updater.cancel()
+            self.updater = None
+
+    def stop(self):
+        if self.Music:
+            self.updater.cancel()
+            #self.updater = None
+            self.Music.stop()
+            
+
+
+
+	    
+
+MusicApp().run()
+
+
+
+KV KISMI
+#: import ew kivy.uix.effectwidget
+#: import get_color_from_hex kivy.utils.get_color_from_hex
+
+MDScreen:
+    name:"sayfa"
+    EffectWidget:
+        effects:ew.VerticalBlurEffect(size=10),ew.HorizontalBlurEffect(size=10)
+        FitImage:
+            source:"manzara.jpg"
+
+    MDBoxLayout:
+        orientation:'vertical'
+        padding:['10dp','30dp','10dp','50dp']
+        pos_hint:{'center_x':.5} 
+        SongCover:
+            id:sc
+            size:(250,250)
+            size_hint:None,None
+            pos_hint:{'center_x':.5}        
+            RotatImage:
+                angle:sc.angle
+                source:"manzara.jpg"
+                radius:[250,]       
+        Widget:
+            size_hint:None,None
+            height:"25dp"
+        Label:
+            text:"şarkı ismi" 
+            bold:True
+            font_size:"25sp"  
+            size_hint_y:None
+            height:self.texture_size[1]
+        Label:
+            text:"şarkıcı ismi"   
+            size_hint_y:None
+            height:self.texture_size[1]
+        MDBoxLayout:
+            orientation:'vertical'
+            id:ekleme
+            MDBoxLayout:
+                #spos_hint:{'center_x':.5} 
+                MyIcon:
+                    icon:"restart"
+                MyIcon:
+                    icon:"skip-previous-outline"
+                MyIcon:
+                    icon:"skip-backward-outline"
+                MyIcon:
+                    icon:"play-outline"
+                    on_press:app.start_play()
+                MyIcon:
+                    icon:"stop"
+                    on_press:app.stop()
+                MyIcon:
+                    icon:"skip-forward"
+                MyIcon:
+                    icon:"skip-next-outline"
+
+
+
+<MyIcon@MDIconButton>:
+    color:[1,1,0,1]
+    size_hint:None,None
+    user_font_size:"20dp"
+    theme_text_color:"Custom"
+    size:("20dp","20dp")
+    text_color:[1,1,1,1]
+
+
+<RotatImage@FitImage>:
+    angle:0
+    canvas.before:
+        PushMatrix
+        Rotate:
+            angle:root.angle
+            origin:self.center
+    canvas.after:
+        PopMatrix
